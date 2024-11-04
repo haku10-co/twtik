@@ -31,8 +31,12 @@ async def twitter_login():
 async def create_tweet(request: TweetRequest):
     client = await twitter_login()
     try:
-        await client.create_tweet(text=request.text)
-        return {"status": "success", "message": "ツイートを投稿しました"}
+        tweet = await client.create_tweet(text=request.text)
+        return {
+            "status": "success",
+            "tweet_id": tweet.id,
+            "text": request.text
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"ツイート投稿に失敗: {str(e)}")
     finally:
