@@ -3,38 +3,28 @@ from twikit import Client
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import logging
+from dotenv import load_dotenv
+
+# 環境変数の読み込み
+load_dotenv()
 
 app = FastAPI()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class TweetRequest(BaseModel):
-    text: str
-
-class SearchRequest(BaseModel):
-    keyword: str
-    count: int = 10
-
-async def twitter_login():
-    try:
-        client = Client('ja')
-        logger.info("クライアント作成完了")
-        
-        await client.login(
-            auth_info_1='manokrod@addrin.uk',
-            auth_info_2='@nagi_tips',
-            password='!naginagi?'
-        )
-        logger.info("ログイン処理完了")
-        return client
-    except Exception as e:
-        logger.error(f"認証エラー: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=401, detail=f"Twitter認証に失敗しました: {str(e)}")
+# 環境変数から認証情報を取得
+TWITTER_EMAIL = os.getenv('TWITTER_EMAIL')
+TWITTER_USERNAME = os.getenv('TWITTER_USERNAME')
+TWITTER_PASSWORD = os.getenv('TWITTER_PASSWORD')
 
 class TweetRequest(BaseModel):
     text: str
     media_paths: list[str] = []  # オプショナルな画像パスのリスト
+
+class SearchRequest(BaseModel):
+    keyword: str
+    count: int = 10
 
 @app.post("/tweet")
 async def create_tweet(request: TweetRequest):
@@ -86,6 +76,22 @@ async def search_tweets(request: SearchRequest):
         raise HTTPException(status_code=500, detail=f"ツイート検索に失敗: {str(e)}")
     finally:
         await client.logout()
+
+async def twitter_login():
+    try:
+        client = Client('ja')
+        logger.info("クライアント作成完了")
+        
+        await client.login(
+            auth_info_1=TWITTER_EMAIL,
+            auth_info_2=TWITTER_USERNAME,
+            password=TWITTER_PASSWORD
+        )
+        logger.info("ログイン処理完了")
+        return client
+    except Exception as e:
+        logger.error(f"認証エラー: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=401, detail=f"Twitter認証に失敗しました: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
